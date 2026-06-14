@@ -8,26 +8,29 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const axios = require('axios');
 const FormData = require('form-data');
-
+ 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
-
+ 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 pool.connect().then(() => console.log('✅ Banco de dados conectado')).catch(err => console.error('❌ Erro no banco:', err.message));
-
+ 
 const JWT_SECRET = process.env.JWT_SECRET || 'chave-secreta-123';
 const FACEPP_KEY = process.env.FACEPP_API_KEY || '';
 const FACEPP_SECRET = process.env.FACEPP_API_SECRET || '';
 const PORT = process.env.PORT || 3000;
-
+ 
+// Endpoint Face++ - usando CN que aceita chamadas de servidores cloud
+const FACEPP_BASE = 'https://api-cn1.faceplusplus.com';
+ 
 function autenticar(req, res, next) {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ erro: 'Token não informado' });
   try { req.usuario = jwt.verify(token, JWT_SECRET); next(); }
   catch { res.status(401).json({ erro: 'Token inválido' }); }
 }
-
+ 
 // ── FACESET (salvo no banco) ──────────────────────────────
 async function getFacesetToken() {
   try {
@@ -39,51 +42,51 @@ async function getFacesetToken() {
     fd.append('api_key', FACEPP_KEY);
     fd.append('api_secret', FACEPP_SECRET);
     fd.append('display_name', 'medplus_colaboradores');
-    const resp = await axios.post('https://api-us.faceplusplus.com/facepp/v3/faceset/create', fd, { headers: fd.getHeaders() });
+    const resp = await axios.post(`${FACEPP_BASE}/facepp/v3/faceset/create`, fd, { headers: fd.getHeaders() });
     const token = resp.data.faceset_token;
     await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('faceset_token', $1)`, [token]);
     console.log('✅ FaceSet criado:', token);
     return token;
   } catch (e) {
-    console.error('❌ Erro FaceSet:', e.message);
+    console.error('❌ Erro FaceSet:', e.response?.status, e.response?.data || e.message);
     return null;
   }
 }
-
+ 
 // ── FACE++ FUNÇÕES ────────────────────────────────────────
 async function detectarRosto(base64) {
   const fd = new FormData();
   fd.append('api_key', FACEPP_KEY);
   fd.append('api_secret', FACEPP_SECRET);
   fd.append('image_base64', base64);
-  const r = await axios.post('https://api-us.faceplusplus.com/facepp/v3/detect', fd, { headers: fd.getHeaders() });
+  const r = await axios.post(`${FACEPP_BASE}/facepp/v3/detect`, fd, { headers: fd.getHeaders() });
   return r.data.faces?.[0]?.face_token || null;
 }
-
+ 
 async function adicionarAoFaceset(faceToken, facesetToken) {
   const fd = new FormData();
   fd.append('api_key', FACEPP_KEY);
   fd.append('api_secret', FACEPP_SECRET);
   fd.append('faceset_token', facesetToken);
   fd.append('face_tokens', faceToken);
-  await axios.post('https://api-us.faceplusplus.com/facepp/v3/faceset/addface', fd, { headers: fd.getHeaders() });
+  await axios.post(`${FACEPP_BASE}/facepp/v3/faceset/addface`, fd, { headers: fd.getHeaders() });
 }
-
+ 
 async function buscarNoFaceset(faceToken, facesetToken) {
   const fd = new FormData();
   fd.append('api_key', FACEPP_KEY);
   fd.append('api_secret', FACEPP_SECRET);
   fd.append('face_token', faceToken);
   fd.append('faceset_token', facesetToken);
-  const r = await axios.post('https://api-us.faceplusplus.com/facepp/v3/search', fd, { headers: fd.getHeaders() });
+  const r = await axios.post(`${FACEPP_BASE}/facepp/v3/search`, fd, { headers: fd.getHeaders() });
   const resultado = r.data.results?.[0];
   if (resultado && resultado.confidence > 75) return resultado.face_token;
   return null;
 }
-
+ 
 // ── STATUS ────────────────────────────────────────────────
-app.get('/', (req, res) => res.json({ sistema: 'Ponto Eletrônico API', versao: '2.0.0', status: 'online', hora: new Date().toLocaleString('pt-BR') }));
-
+app.get('/', (req, res) => res.json({ sistema: 'Ponto Eletrônico API', versao: '2.1.0', status: 'online', endpoint_facepp: FACEPP_BASE, hora: new Date().toLocaleString('pt-BR') }));
+ 
 // ── LOGIN ─────────────────────────────────────────────────
 app.post('/auth/login', async (req, res) => {
   try {
@@ -97,7 +100,7 @@ app.post('/auth/login', async (req, res) => {
     res.json({ token, colaborador: { id: colab.id, nome: colab.nome, matricula: colab.matricula, cargo: colab.cargo, perfil: colab.perfil } });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 // ── CADASTRAR ROSTO ───────────────────────────────────────
 app.post('/facial/cadastrar', async (req, res) => {
   try {
@@ -114,9 +117,12 @@ app.post('/facial/cadastrar', async (req, res) => {
     await adicionarAoFaceset(faceToken, facesetToken);
     await pool.query('UPDATE colaboradores SET face_token = $1 WHERE id = $2', [faceToken, colab.id]);
     res.json({ sucesso: true, mensagem: `Bem-vindo(a), ${colab.nome}! Rosto cadastrado com sucesso.`, colaborador: { nome: colab.nome, cargo: colab.cargo } });
-  } catch (e) { res.status(500).json({ erro: 'Erro ao cadastrar: ' + e.message }); }
+  } catch (e) {
+    console.error('Erro cadastrar rosto:', e.response?.status, e.response?.data || e.message);
+    res.status(500).json({ erro: 'Erro ao cadastrar: ' + (e.response?.data?.error_message || e.message) });
+  }
 });
-
+ 
 // ── REGISTRAR PONTO POR FACIAL ────────────────────────────
 app.post('/ponto/facial', async (req, res) => {
   try {
@@ -138,9 +144,12 @@ app.post('/ponto/facial', async (req, res) => {
     await pool.query('INSERT INTO registros_ponto (colaborador_id, tipo, data_hora, reconhecimento_facial, face_token_usado) VALUES ($1, $2, NOW(), true, $3)', [colab.id, tipo, faceToken]);
     const tipoLabel = { ENTRADA: 'Entrada', SAIDA_ALMOCO: 'Saída para Almoço', RETORNO_ALMOCO: 'Retorno do Almoço', SAIDA: 'Saída' };
     res.json({ sucesso: true, colaborador: { nome: colab.nome, cargo: colab.cargo, matricula: colab.matricula }, tipo_registro: tipoLabel[tipo] || tipo, hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), total_registros_hoje: pontosHoje.rows.length + 1 });
-  } catch (e) { res.status(500).json({ erro: 'Erro ao registrar: ' + e.message }); }
+  } catch (e) {
+    console.error('Erro registrar ponto:', e.response?.status, e.response?.data || e.message);
+    res.status(500).json({ erro: 'Erro ao registrar: ' + (e.response?.data?.error_message || e.message) });
+  }
 });
-
+ 
 // ── PONTOS DO DIA ─────────────────────────────────────────
 app.get('/ponto/hoje/:matricula', autenticar, async (req, res) => {
   try {
@@ -149,7 +158,7 @@ app.get('/ponto/hoje/:matricula', autenticar, async (req, res) => {
     res.json({ registros: r.rows });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 // ── COLABORADORES ─────────────────────────────────────────
 app.get('/colaboradores', autenticar, async (req, res) => {
   try {
@@ -157,7 +166,7 @@ app.get('/colaboradores', autenticar, async (req, res) => {
     res.json({ colaboradores: r.rows });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 app.get('/colaboradores/:matricula', async (req, res) => {
   try {
     const r = await pool.query('SELECT id, matricula, nome, cargo, departamento FROM colaboradores WHERE matricula = $1 AND ativo = true', [req.params.matricula]);
@@ -165,7 +174,7 @@ app.get('/colaboradores/:matricula', async (req, res) => {
     res.json(r.rows[0]);
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 app.post('/colaboradores', autenticar, async (req, res) => {
   try {
     const { matricula, nome, cpf, cargo, departamento, salario, data_admissao, email, perfil, senha } = req.body;
@@ -174,7 +183,7 @@ app.post('/colaboradores', autenticar, async (req, res) => {
     res.json({ sucesso: true });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 // ── DASHBOARD RH ──────────────────────────────────────────
 app.get('/rh/dashboard', autenticar, async (req, res) => {
   try {
@@ -187,7 +196,7 @@ app.get('/rh/dashboard', autenticar, async (req, res) => {
     res.json({ resumo: { trabalhando, almoco, saiu, ausentes: ausentes.rows.length }, presentes: presentes.rows, ausentes: ausentes.rows });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 // ── ADVERTÊNCIAS ──────────────────────────────────────────
 app.post('/advertencias', autenticar, async (req, res) => {
   try {
@@ -196,7 +205,7 @@ app.post('/advertencias', autenticar, async (req, res) => {
     res.json({ sucesso: true });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 // ── RESCISÃO ──────────────────────────────────────────────
 app.post('/rescisao/calcular', autenticar, async (req, res) => {
   try {
@@ -223,7 +232,7 @@ app.post('/rescisao/calcular', autenticar, async (req, res) => {
     res.json({ colaborador: c, verbas: { saldoSalario, avisoPrevio, decimoTerceiro, feriasProporcionais, umTercoFerias, multaFgts }, descontos: { inss, irrf }, totais: { totalBruto, totalLiquido }, saldoFgts, data_pagamento: dataPagamento });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 app.post('/rescisao/iniciar', autenticar, async (req, res) => {
   try {
     const { colaborador_id, tipo, data_desligamento, motivo } = req.body;
@@ -231,9 +240,8 @@ app.post('/rescisao/iniciar', autenticar, async (req, res) => {
     res.json({ sucesso: true });
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
-
+ 
 // ── INICIAR ───────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   getFacesetToken(); // cria faceset automaticamente se não existir
-});
