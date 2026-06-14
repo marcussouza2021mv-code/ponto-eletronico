@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Med+ Group — Painel RH</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --laranja: #F15A24; --laranja-escuro: #C94A1A; --laranja-claro: #FFF0EB; --branco: #FFFFFF; --cinza-claro: #F8F8F8; --cinza: #E5E5E5; --cinza-texto: #666; --texto: #222; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--cinza-claro); color: var(--texto); }
+    #tela-login { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #F15A24 0%, #C94A1A 100%); }
+    .login-box { background: var(--branco); border-radius: 16px; padding: 48px 40px; width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); text-align: center; }
+    .login-logo { margin-bottom: 32px; }
+    .login-logo .med { font-size: 42px; font-weight: 900; color: var(--laranja); letter-spacing: -1px; }
+    .login-logo .group { font-size: 14px; color: var(--laranja); font-weight: 600; letter-spacing: 3px; text-transform: uppercase; display: block; margin-top: -4px; }
+    .login-box h2 { font-size: 18px; color: var(--cinza-texto); margin-bottom: 28px; font-weight: 400; }
+    .login-box input { width: 100%; padding: 13px 16px; border: 2px solid var(--cinza); border-radius: 8px; font-size: 15px; margin-bottom: 14px; transition: border-color .2s; outline: none; }
+    .login-box input:focus { border-color: var(--laranja); }
+    .login-box button { width: 100%; padding: 14px; background: var(--laranja); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .2s; margin-top: 6px; }
+    .login-box button:hover { background: var(--laranja-escuro); }
+    .erro-login { color: #e53935; font-size: 13px; margin-top: 10px; }
+    #app { display: none; }
+    header { background: var(--branco); border-bottom: 3px solid var(--laranja); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .header-logo { display: flex; align-items: center; gap: 10px; }
+    .logo-mark { font-size: 28px; font-weight: 900; color: var(--laranja); line-height: 1; }
+    .logo-mark span { font-size: 10px; display: block; letter-spacing: 3px; font-weight: 600; color: var(--laranja); }
+    .header-title { font-size: 15px; color: var(--cinza-texto); border-left: 2px solid var(--cinza); padding-left: 16px; margin-left: 4px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .header-user { font-size: 14px; color: var(--cinza-texto); }
+    .btn-sair { padding: 7px 16px; border: 2px solid var(--laranja); color: var(--laranja); background: transparent; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-sair:hover { background: var(--laranja); color: white; }
+    nav { background: var(--branco); padding: 0 32px; border-bottom: 1px solid var(--cinza); display: flex; gap: 0; }
+    .nav-btn { padding: 14px 20px; border: none; background: transparent; font-size: 14px; font-weight: 600; color: var(--cinza-texto); cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; margin-bottom: -1px; }
+    .nav-btn:hover { color: var(--laranja); }
+    .nav-btn.ativo { color: var(--laranja); border-bottom-color: var(--laranja); }
+    main { padding: 28px 32px; max-width: 1300px; margin: 0 auto; }
+    .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .card { background: var(--branco); border-radius: 12px; padding: 22px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid var(--cinza); }
+    .card.laranja { border-left-color: var(--laranja); }
+    .card.verde { border-left-color: #4CAF50; }
+    .card.azul { border-left-color: #2196F3; }
+    .card.cinza { border-left-color: #9E9E9E; }
+    .card-num { font-size: 38px; font-weight: 900; color: var(--texto); line-height: 1; }
+    .card.laranja .card-num { color: var(--laranja); }
+    .card.verde .card-num { color: #4CAF50; }
+    .card.azul .card-num { color: #2196F3; }
+    .card-label { font-size: 13px; color: var(--cinza-texto); margin-top: 6px; font-weight: 500; }
+    .secao { background: var(--branco); border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px; }
+    .secao-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .secao-titulo { font-size: 16px; font-weight: 700; color: var(--texto); display: flex; align-items: center; gap: 8px; }
+    .secao-titulo::before { content: ''; display: inline-block; width: 4px; height: 18px; background: var(--laranja); border-radius: 2px; }
+    .btn-acao { padding: 8px 18px; background: var(--laranja); color: white; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .btn-acao:hover { background: var(--laranja-escuro); }
+    .btn-acao.outline { background: transparent; color: var(--laranja); border: 2px solid var(--laranja); }
+    .btn-acao.outline:hover { background: var(--laranja); color: white; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 14px; color: var(--cinza-texto); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid var(--cinza); }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--cinza); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--laranja-claro); }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .badge-verde { background: #E8F5E9; color: #2E7D32; }
+    .badge-laranja { background: #FFF3E0; color: #E65100; }
+    .badge-azul { background: #E3F2FD; color: #1565C0; }
+    .badge-cinza { background: #F5F5F5; color: #757575; }
+    .badge-vermelho { background: #FFEBEE; color: #C62828; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--cinza-texto); }
+    .form-group input, .form-group select, .form-group textarea { padding: 10px 14px; border: 2px solid var(--cinza); border-radius: 8px; font-size: 14px; outline: none; transition: border-color .2s; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--laranja); }
+    .form-group textarea { resize: vertical; min-height: 90px; }
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+    .modal-bg.aberto { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 32px; width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .modal-titulo { font-size: 18px; font-weight: 700; color: var(--texto); }
+    .modal-fechar { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--cinza-texto); }
+    .modal-fechar:hover { color: var(--texto); }
+    .modal-footer { margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end; }
+    .resultado-rescisao { background: var(--laranja-claro); border-radius: 10px; padding: 20px; margin-top: 20px; display: none; }
+    .resultado-titulo { font-weight: 700; color: var(--laranja); margin-bottom: 12px; font-size: 15px; }
+    .resultado-linha { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #FFDDD0; font-size: 14px; }
+    .resultado-linha:last-child { border-bottom: none; font-weight: 700; font-size: 16px; color: var(--laranja); }
+    .resultado-linha.desconto { color: #c62828; }
+    .loading { text-align: center; padding: 40px; color: var(--cinza-texto); }
+    .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--cinza); border-top-color: var(--laranja); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .aba { display: none; }
+    .aba.ativa { display: block; }
+    .busca-bar { display: flex; gap: 12px; margin-bottom: 18px; }
+    .busca-bar input { flex: 1; padding: 10px 14px; border: 2px solid var(--cinza); border-radius: 8px; font-size: 14px; outline: none; }
+    .busca-bar input:focus { border-color: var(--laranja); }
+    #relogio { font-size: 13px; color: var(--cinza-texto); }
+    @media (max-width: 768px) { .cards-grid { grid-template-columns: 1fr 1fr; } main { padding: 16px; } header { padding: 0 16px; } nav { padding: 0 16px; overflow-x: auto; } .form-grid { grid-column: 1fr; } .modal { width: 95vw; padding: 20px; } }
+  </style>
+</head>
+<body>
+<div id="tela-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="med">med<span style="color:var(--laranja)">+</span></div>
+      <span class="group">Group</span>
+    </div>
+    <h2>Painel de Recursos Humanos</h2>
+    <input type="text" id="login-matricula" placeholder="Matrícula" />
+    <input type="password" id="login-senha" placeholder="Senha" />
+    <button onclick="fazerLogin()">Entrar</button>
+    <div class="erro-login" id="erro-login"></div>
+  </div>
+</div>
+<div id="app">
+  <header>
+    <div class="header-logo">
+      <div class="logo-mark">med+<span>GROUP</span></div>
+      <div class="header-title">Painel de RH</div>
+    </div>
+    <div class="header-right">
+      <span id="relogio"></span>
+      <span class="header-user" id="header-nome"></span>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </header>
+  <nav>
+    <button class="nav-btn ativo" onclick="trocarAba('dashboard', this)">📊 Dashboard</button>
+    <button class="nav-btn" onclick="trocarAba('colaboradores', this)">👥 Colaboradores</button>
+    <button class="nav-btn" onclick="trocarAba('advertencias', this)">⚠️ Advertências</button>
+    <button class="nav-btn" onclick="trocarAba('rescisoes', this)">📋 Rescisões</button>
+  </nav>
+  <main>
+    <div class="aba ativa" id="aba-dashboard">
+      <div class="cards-grid">
+        <div class="card laranja"><div class="card-num" id="card-trabalhando">—</div><div class="card-label">Trabalhando agora</div></div>
+        <div class="card azul"><div class="card-num" id="card-almoco">—</div><div class="card-label">Em almoço</div></div>
+        <div class="card cinza"><div class="card-num" id="card-saiu">—</div><div class="card-label">Já saíram</div></div>
+        <div class="card" style="border-left-color:#e53935"><div class="card-num" id="card-ausentes" style="color:#e53935">—</div><div class="card-label">Ausentes hoje</div></div>
+      </div>
+      <div class="secao">
+        <div class="secao-header">
+          <div class="secao-titulo">Colaboradores Presentes</div>
+          <button class="btn-acao outline" onclick="carregarDashboard()">↻ Atualizar</button>
+        </div>
+        <div id="tabela-presentes"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="secao">
+        <div class="secao-titulo" style="margin-bottom:16px">Ausentes Hoje</div>
+        <div id="tabela-ausentes"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+    <div class="aba" id="aba-colaboradores">
+      <div class="secao">
+        <div class="secao-header">
+          <div class="secao-titulo">Colaboradores</div>
+          <button class="btn-acao" onclick="abrirModalColaborador()">+ Novo Colaborador</button>
+        </div>
+        <div class="busca-bar"><input type="text" id="busca-colab" placeholder="Buscar por nome ou matrícula..." oninput="buscarColaboradores()" /></div>
+        <div id="tabela-colaboradores"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+    <div class="aba" id="aba-advertencias">
+      <div class="secao">
+        <div class="secao-header">
+          <div class="secao-titulo">Advertências</div>
+          <button class="btn-acao" onclick="abrirModalAdvertencia()">+ Nova Advertência</button>
+        </div>
+        <div id="tabela-advertencias"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+    <div class="aba" id="aba-rescisoes">
+      <div class="secao">
+        <div class="secao-header">
+          <div class="secao-titulo">Rescisões</div>
+          <button class="btn-acao" onclick="abrirModalRescisao()">+ Nova Rescisão</button>
+        </div>
+        <div id="tabela-rescisoes"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal-bg" id="modal-colaborador">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-titulo">Novo Colaborador</div><button class="modal-fechar" onclick="fecharModal('modal-colaborador')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label>Matrícula *</label><input type="text" id="c-matricula" placeholder="00001" /></div>
+      <div class="form-group"><label>CPF *</label><input type="text" id="c-cpf" placeholder="000.000.000-00" /></div>
+      <div class="form-group full"><label>Nome Completo *</label><input type="text" id="c-nome" placeholder="Nome do colaborador" /></div>
+      <div class="form-group"><label>Cargo</label><input type="text" id="c-cargo" placeholder="Ex: Enfermeiro" /></div>
+      <div class="form-group"><label>Salário (R$)</label><input type="number" id="c-salario" placeholder="0.00" step="0.01" /></div>
+      <div class="form-group"><label>Data de Admissão *</label><input type="date" id="c-admissao" /></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="c-email" placeholder="email@medplus.com.br" /></div>
+      <div class="form-group"><label>Perfil de Acesso</label><select id="c-perfil"><option value="COLABORADOR">Colaborador</option><option value="GESTOR">Gestor</option><option value="RH">RH</option><option value="ADMIN">Admin</option></select></div>
+      <div class="form-group full"><label>Senha (para acesso ao painel)</label><input type="password" id="c-senha" placeholder="Deixe em branco para sem acesso" /></div>
+    </div>
+    <div class="modal-footer"><button class="btn-acao outline" onclick="fecharModal('modal-colaborador')">Cancelar</button><button class="btn-acao" onclick="cadastrarColaborador()">Cadastrar</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-advertencia">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-titulo">Nova Advertência</div><button class="modal-fechar" onclick="fecharModal('modal-advertencia')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Colaborador (Matrícula) *</label><input type="text" id="a-matricula" placeholder="Digite a matrícula" onblur="buscarColabParaAdvertencia()" /><small id="a-colab-nome" style="color:var(--laranja);font-weight:600"></small></div>
+      <div class="form-group"><label>Tipo *</label><select id="a-tipo"><option value="VERBAL">Verbal</option><option value="ESCRITA_1">1ª Advertência Escrita</option><option value="ESCRITA_REINCIDENCIA">Reincidência</option><option value="SUSPENSAO">Suspensão</option></select></div>
+      <div class="form-group"><label>Data da Ocorrência *</label><input type="date" id="a-data" /></div>
+      <div class="form-group full"><label>Motivo *</label><input type="text" id="a-motivo" placeholder="Resumo do motivo" /></div>
+      <div class="form-group full"><label>Descrição Detalhada</label><textarea id="a-descricao" placeholder="Descreva detalhadamente a ocorrência..."></textarea></div>
+      <div class="form-group" id="grupo-suspensao" style="display:none"><label>Dias de Suspensão</label><input type="number" id="a-dias" placeholder="0" min="1" /></div>
+    </div>
+    <div class="modal-footer"><button class="btn-acao outline" onclick="fecharModal('modal-advertencia')">Cancelar</button><button class="btn-acao" onclick="emitirAdvertencia()">Emitir Advertência</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-rescisao">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-titulo">Calcular Rescisão</div><button class="modal-fechar" onclick="fecharModal('modal-rescisao')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Colaborador (Matrícula) *</label><input type="text" id="r-matricula" placeholder="Digite a matrícula" onblur="buscarColabParaRescisao()" /><small id="r-colab-info" style="color:var(--laranja);font-weight:600"></small></div>
+      <div class="form-group"><label>Tipo de Rescisão *</label><select id="r-tipo"><option value="SEM_JUSTA_CAUSA">Sem Justa Causa</option><option value="COM_JUSTA_CAUSA">Com Justa Causa</option><option value="PEDIDO_DEMISSAO">Pedido de Demissão</option><option value="ACORDO_MUTUO">Acordo Mútuo</option><option value="TERMINO_CONTRATO">Término de Contrato</option></select></div>
+      <div class="form-group"><label>Data de Desligamento *</label><input type="date" id="r-data" /></div>
+      <div class="form-group full"><label>Motivo</label><textarea id="r-motivo" placeholder="Descreva o motivo..." style="min-height:70px"></textarea></div>
+    </div>
+    <div id="resultado-rescisao" class="resultado-rescisao"></div>
+    <div class="modal-footer"><button class="btn-acao outline" onclick="fecharModal('modal-rescisao')">Cancelar</button><button class="btn-acao outline" onclick="calcularRescisao()">Calcular</button><button class="btn-acao" id="btn-iniciar-rescisao" style="display:none" onclick="iniciarRescisao()">Iniciar Processo</button></div>
+  </div>
+</div><script>
+  const API = 'https://ponto-eletronico-p6t6.onrender.com';
+  let TOKEN = localStorage.getItem('ponto_token') || '';
+  let USUARIO = JSON.parse(localStorage.getItem('ponto_usuario') || '{}');
+  let colaboradorRescisaoId = null;
+  let colaboradorAdvertenciaId = null;
+
+  function atualizarRelogio() {
+    document.getElementById('relogio').textContent = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+  }
+  setInterval(atualizarRelogio, 1000);
+  atualizarRelogio();
+
+  if (TOKEN) {
+    document.getElementById('tela-login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('header-nome').textContent = USUARIO.nome || '';
+    carregarDashboard();
+  }
+
+  async function fazerLogin() {
+    const matricula = document.getElementById('login-matricula').value.trim();
+    const senha = document.getElementById('login-senha').value;
+    document.getElementById('erro-login').textContent = '';
+    if (!matricula || !senha) { document.getElementById('erro-login').textContent = 'Preencha matrícula e senha.'; return; }
+    try {
+      const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matricula, senha }) });
+      const d = await r.json();
+      if (d.erro) { document.getElementById('erro-login').textContent = d.erro; return; }
+      TOKEN = d.token; USUARIO = d.colaborador;
+      localStorage.setItem('ponto_token', TOKEN);
+      localStorage.setItem('ponto_usuario', JSON.stringify(USUARIO));
+      document.getElementById('tela-login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('header-nome').textContent = USUARIO.nome;
+      carregarDashboard();
+    } catch (e) {
+      document.getElementById('erro-login').textContent = 'Erro de conexão. Tente novamente.';
+    }
+  }
+  document.getElementById('login-senha').addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+
+  function sair() { localStorage.removeItem('ponto_token'); localStorage.removeItem('ponto_usuario'); location.reload(); }
+
+  function trocarAba(aba, btn) {
+    document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativa'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('ativo'));
+    document.getElementById('aba-' + aba).classList.add('ativa');
+    btn.classList.add('ativo');
+    if (aba === 'dashboard') carregarDashboard();
+    if (aba === 'colaboradores') carregarColaboradores();
+    if (aba === 'advertencias') carregarAdvertencias();
+    if (aba === 'rescisoes') carregarRescisoes();
+  }
+
+  function abrirModal(id) { document.getElementById(id).classList.add('aberto'); }
+  function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
+
+  async function get(url) {
+    const r = await fetch(API + url, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    return r.json();
+  }
+  async function post(url, body) {
+    const r = await fetch(API + url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + TOKEN }, body: JSON.stringify(body) });
+    return r.json();
+  }
+
+  async function carregarDashboard() {
+    try {
+      const d = await get('/rh/dashboard');
+      document.getElementById('card-trabalhando').textContent = d.resumo?.trabalhando || 0;
+      document.getElementById('card-almoco').textContent = d.resumo?.almoco || 0;
+      document.getElementById('card-saiu').textContent = d.resumo?.saiu || 0;
+      document.getElementById('card-ausentes').textContent = d.resumo?.ausentes || 0;
+      const presentes = d.presentes || [];
+      document.getElementById('tabela-presentes').innerHTML = presentes.length === 0
+        ? '<p style="color:var(--cinza-texto);text-align:center;padding:20px">Nenhum colaborador presente no momento.</p>'
+        : `<table><thead><tr><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Entrada</th><th>Situação</th></tr></thead><tbody>
+          ${presentes.map(p => `<tr><td><strong>${p.nome}</strong></td><td>${p.cargo||'—'}</td><td>${p.departamento||'—'}</td><td>${p.entrada?new Date(p.entrada).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—'}</td><td><span class="badge ${p.situacao_atual==='TRABALHANDO'?'badge-verde':p.situacao_atual==='ALMOCO'?'badge-azul':'badge-cinza'}">${p.situacao_atual}</span></td></tr>`).join('')}
+        </tbody></table>`;
+      const ausentes = d.ausentes || [];
+      document.getElementById('tabela-ausentes').innerHTML = ausentes.length === 0
+        ? '<p style="color:var(--cinza-texto);text-align:center;padding:20px">Todos registraram ponto hoje!</p>'
+        : `<table><thead><tr><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Departamento</th></tr></thead><tbody>
+          ${ausentes.map(a => `<tr><td><strong>${a.nome}</strong></td><td>${a.matricula}</td><td>${a.cargo||'—'}</td><td>${a.departamento||'—'}</td></tr>`).join('')}
+        </tbody></table>`;
+    } catch (e) {
+      document.getElementById('tabela-presentes').innerHTML = '<p style="color:#e53935;text-align:center;padding:20px">Erro ao carregar dados.</p>';
+    }
+  }
+
+  let todosColaboradores = [];
+  async function carregarColaboradores() {
+    document.getElementById('tabela-colaboradores').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    const d = await get('/colaboradores');
+    todosColaboradores = d.colaboradores || [];
+    renderColaboradores(todosColaboradores);
+  }
+  function renderColaboradores(lista) {
+    document.getElementById('tabela-colaboradores').innerHTML = lista.length === 0
+      ? '<p style="color:var(--cinza-texto);text-align:center;padding:20px">Nenhum colaborador encontrado.</p>'
+      : `<table><thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Admissão</th><th>Perfil</th><th>Facial</th></tr></thead><tbody>
+        ${lista.map(c => `<tr><td>${c.matricula}</td><td><strong>${c.nome}</strong></td><td>${c.cargo||'—'}</td><td>${c.departamento||'—'}</td><td>${c.data_admissao?new Date(c.data_admissao).toLocaleDateString('pt-BR'):'—'}</td><td><span class="badge ${c.perfil==='ADMIN'?'badge-vermelho':c.perfil==='RH'?'badge-laranja':c.perfil==='GESTOR'?'badge-azul':'badge-cinza'}">${c.perfil}</span></td><td><span class="badge ${c.face_token?'badge-verde':'badge-cinza'}">${c.face_token?'Cadastrado':'Pendente'}</span></td></tr>`).join('')}
+      </tbody></table>`;
+  }
+  function buscarColaboradores() {
+    const busca = document.getElementById('busca-colab').value.toLowerCase();
+    renderColaboradores(todosColaboradores.filter(c => c.nome.toLowerCase().includes(busca) || c.matricula.toLowerCase().includes(busca)));
+  }
+  function abrirModalColaborador() { abrirModal('modal-colaborador'); }
+  async function cadastrarColaborador() {
+    const body = { matricula: document.getElementById('c-matricula').value, nome: document.getElementById('c-nome').value, cpf: document.getElementById('c-cpf').value, cargo: document.getElementById('c-cargo').value, salario: document.getElementById('c-salario').value, data_admissao: document.getElementById('c-admissao').value, email: document.getElementById('c-email').value, perfil: document.getElementById('c-perfil').value, senha: document.getElementById('c-senha').value || undefined };
+    if (!body.matricula || !body.nome || !body.cpf || !body.data_admissao) { alert('Preencha os campos obrigatórios (*)'); return; }
+    const d = await post('/colaboradores', body);
+    if (d.sucesso) { alert('Colaborador cadastrado!'); fecharModal('modal-colaborador'); carregarColaboradores(); }
+    else alert(d.erro || 'Erro ao cadastrar');
+  }
+
+  async function carregarAdvertencias() {
+    document.getElementById('tabela-advertencias').innerHTML = '<p style="color:var(--cinza-texto);text-align:center;padding:30px">As advertências emitidas aparecerão aqui.<br>Clique em <strong>+ Nova Advertência</strong> para começar.</p>';
+  }
+  function abrirModalAdvertencia() { document.getElementById('a-data').value = new Date().toISOString().split('T')[0]; abrirModal('modal-advertencia'); }
+  document.getElementById('a-tipo').addEventListener('change', function() { document.getElementById('grupo-suspensao').style.display = this.value === 'SUSPENSAO' ? 'flex' : 'none'; });
+  async function buscarColabParaAdvertencia() {
+    const mat = document.getElementById('a-matricula').value.trim();
+    if (!mat) return;
+    try { const r = await fetch(`${API}/colaboradores/${mat}`); const d = await r.json(); if (d.id) { colaboradorAdvertenciaId = d.id; document.getElementById('a-colab-nome').textContent = '✓ ' + d.nome; } else { colaboradorAdvertenciaId = null; document.getElementById('a-colab-nome').textContent = 'Matrícula não encontrada'; } } catch {}
+  }
+  async function emitirAdvertencia() {
+    if (!colaboradorAdvertenciaId) { alert('Busque um colaborador válido primeiro.'); return; }
+    const body = { colaborador_id: colaboradorAdvertenciaId, tipo: document.getElementById('a-tipo').value, motivo: document.getElementById('a-motivo').value, descricao_detalhada: document.getElementById('a-descricao').value, data_ocorrencia: document.getElementById('a-data').value, dias_suspensao: parseInt(document.getElementById('a-dias').value) || 0 };
+    if (!body.motivo || !body.data_ocorrencia) { alert('Preencha motivo e data.'); return; }
+    const d = await post('/advertencias', body);
+    if (d.sucesso) { alert('Advertência emitida!'); fecharModal('modal-advertencia'); }
+    else alert(d.erro || 'Erro ao emitir');
+  }
+
+  async function carregarRescisoes() {
+    document.getElementById('tabela-rescisoes').innerHTML = '<p style="color:var(--cinza-texto);text-align:center;padding:30px">Os processos de rescisão aparecerão aqui.<br>Clique em <strong>+ Nova Rescisão</strong> para calcular.</p>';
+  }
+  function abrirModalRescisao() { document.getElementById('r-data').value = new Date().toISOString().split('T')[0]; document.getElementById('resultado-rescisao').style.display = 'none'; document.getElementById('btn-iniciar-rescisao').style.display = 'none'; colaboradorRescisaoId = null; abrirModal('modal-rescisao'); }
+  async function buscarColabParaRescisao() {
+    const mat = document.getElementById('r-matricula').value.trim();
+    if (!mat) return;
+    try { const r = await fetch(`${API}/colaboradores/${mat}`); const d = await r.json(); if (d.id) { colaboradorRescisaoId = d.id; document.getElementById('r-colab-info').textContent = `✓ ${d.nome} — ${d.cargo||''}`; } else { colaboradorRescisaoId = null; document.getElementById('r-colab-info').textContent = 'Matrícula não encontrada'; } } catch {}
+  }
+  async function calcularRescisao() {
+    if (!colaboradorRescisaoId) { alert('Busque um colaborador válido primeiro.'); return; }
+    const body = { colaborador_id: colaboradorRescisaoId, tipo: document.getElementById('r-tipo').value, data_desligamento: document.getElementById('r-data').value };
+    const d = await post('/rescisao/calcular', body);
+    if (d.erro) { alert(d.erro); return; }
+    const v = d.verbas, t = d.totais, desc = d.descontos;
+    const fmt = v => v ? `R$ ${parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : 'R$ 0,00';
+    document.getElementById('resultado-rescisao').style.display = 'block';
+    document.getElementById('resultado-rescisao').innerHTML = `<div class="resultado-titulo">📊 Cálculo — ${d.colaborador.nome}</div><div class="resultado-linha"><span>Saldo de Salário</span><span>${fmt(v.saldoSalario)}</span></div><div class="resultado-linha"><span>Aviso Prévio</span><span>${fmt(v.avisoPrevio)}</span></div><div class="resultado-linha"><span>13º Proporcional</span><span>${fmt(v.decimoTerceiro)}</span></div><div class="resultado-linha"><span>Férias Proporcionais</span><span>${fmt(v.feriasProporcionais)}</span></div><div class="resultado-linha"><span>1/3 de Férias</span><span>${fmt(v.umTercoFerias)}</span></div><div class="resultado-linha"><span>Multa FGTS</span><span>${fmt(v.multaFgts)}</span></div><div class="resultado-linha"><span><strong>Total Bruto</strong></span><span><strong>${fmt(t.totalBruto)}</strong></span></div><div class="resultado-linha desconto"><span>(-) INSS</span><span>- ${fmt(desc.inss)}</span></div><div class="resultado-linha desconto"><span>(-) IRRF</span><span>- ${fmt(desc.irrf)}</span></div><div class="resultado-linha"><span>💰 TOTAL LÍQUIDO</span><span>${fmt(t.totalLiquido)}</span></div>`;
+    document.getElementById('btn-iniciar-rescisao').style.display = 'inline-block';
+  }
+  async function iniciarRescisao() {
+    const body = { colaborador_id: colaboradorRescisaoId, tipo: document.getElementById('r-tipo').value, data_desligamento: document.getElementById('r-data').value, motivo: document.getElementById('r-motivo').value };
+    const d = await post('/rescisao/iniciar', body);
+    if (d.sucesso) { alert('Processo iniciado! Aguardando aprovação.'); fecharModal('modal-rescisao'); }
+    else alert(d.erro || 'Erro ao iniciar rescisão');
+  }
+</script>
+</body>
+</html>
