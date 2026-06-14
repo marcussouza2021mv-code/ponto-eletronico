@@ -51,7 +51,7 @@ async function criarNovoFaceset() {
   const token = resp.data.faceset_token;
   await pool.query(
     `INSERT INTO configuracoes (chave, valor) VALUES ('faceset_token', $1)
-     ON CONFLICT (chave) DO UPDATE SET valor = $1, updated_at = NOW()`,
+     ON CONFLICT (chave) DO UPDATE SET valor = $1`,
     [token]
   );
   console.log('✅ FaceSet criado:', token);
