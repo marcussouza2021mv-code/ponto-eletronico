@@ -186,6 +186,12 @@ app.get('/painel', (req, res) => {
   res.sendFile(path.join(__dirname, 'painel-rh.html'));
 });
 
+// ROTA TEMPORÁRIA — ver colaboradores com CPF
+app.get('/setup/colaboradores', async (req, res) => {
+  const { rows } = await pool.query('SELECT matricula, nome, cpf, cargo, perfil, face_token FROM colaboradores ORDER BY id');
+  res.json(rows.map(r => ({ ...r, tem_facial: !!r.face_token })));
+});
+
 // ROTA TEMPORÁRIA — reset admin (remover depois)
 app.get('/setup/reset-admin', async (req, res) => {
   try {

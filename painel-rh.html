@@ -221,7 +221,32 @@
     <div id="resultado-rescisao" class="resultado-rescisao"></div>
     <div class="modal-footer"><button class="btn-acao outline" onclick="fecharModal('modal-rescisao')">Cancelar</button><button class="btn-acao outline" onclick="calcularRescisao()">Calcular</button><button class="btn-acao" id="btn-iniciar-rescisao" style="display:none" onclick="iniciarRescisao()">Iniciar Processo</button></div>
   </div>
-</div><script>
+</div>
+
+<div class="modal-bg" id="modal-detalhe-colab">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-titulo">Detalhes do Colaborador</div>
+      <button class="modal-fechar" onclick="fecharModal('modal-detalhe-colab')">✕</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:10px 0;color:#666;width:40%">Nome</td><td style="padding:10px 0;font-weight:700" id="detalhe-nome"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">Matrícula</td><td style="padding:10px 0;font-weight:700" id="detalhe-matricula"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">CPF</td><td style="padding:10px 0;font-weight:700;font-size:16px;color:#F15A24" id="detalhe-cpf"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">Cargo</td><td style="padding:10px 0" id="detalhe-cargo"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">E-mail</td><td style="padding:10px 0" id="detalhe-email"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">Telefone</td><td style="padding:10px 0" id="detalhe-telefone"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">Admissão</td><td style="padding:10px 0" id="detalhe-admissao"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">Perfil</td><td style="padding:10px 0" id="detalhe-perfil"></td></tr>
+      <tr style="border-top:1px solid #f0f0f0"><td style="padding:10px 0;color:#666">Reconhecimento Facial</td><td style="padding:10px 0" id="detalhe-facial"></td></tr>
+    </table>
+    <div class="modal-footer">
+      <button class="btn-acao outline" onclick="fecharModal('modal-detalhe-colab')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
   const API = 'https://ponto-eletronico-p6t6.onrender.com';
   let TOKEN = localStorage.getItem('ponto_token') || '';
   let USUARIO = JSON.parse(localStorage.getItem('ponto_usuario') || '{}');
@@ -323,8 +348,22 @@
     document.getElementById('tabela-colaboradores').innerHTML = lista.length === 0
       ? '<p style="color:var(--cinza-texto);text-align:center;padding:20px">Nenhum colaborador encontrado.</p>'
       : `<table><thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Admissão</th><th>Perfil</th><th>Facial</th></tr></thead><tbody>
-        ${lista.map(c => `<tr><td>${c.matricula}</td><td><strong>${c.nome}</strong></td><td>${c.cargo||'—'}</td><td>${c.departamento||'—'}</td><td>${c.data_admissao?new Date(c.data_admissao).toLocaleDateString('pt-BR'):'—'}</td><td><span class="badge ${c.perfil==='ADMIN'?'badge-vermelho':c.perfil==='RH'?'badge-laranja':c.perfil==='GESTOR'?'badge-azul':'badge-cinza'}">${c.perfil}</span></td><td><span class="badge ${c.face_token?'badge-verde':'badge-cinza'}">${c.face_token?'Cadastrado':'Pendente'}</span></td></tr>`).join('')}
+        ${lista.map(c => `<tr style="cursor:pointer" onclick="verColaborador('${c.matricula}')"><td>${c.matricula}</td><td><strong>${c.nome}</strong></td><td>${c.cargo||'—'}</td><td>${c.departamento||'—'}</td><td>${c.data_admissao?new Date(c.data_admissao).toLocaleDateString('pt-BR'):'—'}</td><td><span class="badge ${c.perfil==='ADMIN'?'badge-vermelho':c.perfil==='RH'?'badge-laranja':c.perfil==='GESTOR'?'badge-azul':'badge-cinza'}">${c.perfil}</span></td><td><span class="badge ${c.rosto_cadastrado?'badge-verde':'badge-cinza'}">${c.rosto_cadastrado?'Cadastrado':'Pendente'}</span></td></tr>`).join('')}
       </tbody></table>`;
+  }
+  function verColaborador(matricula) {
+    const c = todosColaboradores.find(x => x.matricula === matricula);
+    if (!c) return;
+    document.getElementById('detalhe-nome').textContent = c.nome;
+    document.getElementById('detalhe-matricula').textContent = c.matricula;
+    document.getElementById('detalhe-cpf').textContent = c.cpf ? c.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—';
+    document.getElementById('detalhe-cargo').textContent = c.cargo || '—';
+    document.getElementById('detalhe-email').textContent = c.email || '—';
+    document.getElementById('detalhe-telefone').textContent = c.telefone || '—';
+    document.getElementById('detalhe-admissao').textContent = c.data_admissao ? new Date(c.data_admissao).toLocaleDateString('pt-BR') : '—';
+    document.getElementById('detalhe-perfil').textContent = c.perfil;
+    document.getElementById('detalhe-facial').textContent = c.rosto_cadastrado ? 'Cadastrado ✅' : 'Pendente ⏳';
+    abrirModal('modal-detalhe-colab');
   }
   function buscarColaboradores() {
     const busca = document.getElementById('busca-colab').value.toLowerCase();
