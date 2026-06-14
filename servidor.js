@@ -177,6 +177,11 @@ async function adicionarAoFaceset(faceToken) {
 // ROTA RAIZ (health check)
 // ================================================================
 app.get('/', (req, res) => {
+  const path = require('path');
+  res.sendFile(path.join(__dirname, 'ponto.html'));
+});
+
+app.get('/api', (req, res) => {
   res.json({
     sistema: 'Ponto Eletrônico API',
     versao: '2.1.0',

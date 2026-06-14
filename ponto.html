@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ponto Med+">
+<meta name="theme-color" content="#F15A24">
+<title>Ponto Eletrônico - Med+ Group</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F15A24; min-height: 100vh; min-height: -webkit-fill-available; }
+  html { height: -webkit-fill-available; }
+
+  .tela { display: none; min-height: 100vh; min-height: -webkit-fill-available; flex-direction: column; }
+  .tela.ativa { display: flex; }
+
+  /* ── TELA INICIAL ── */
+  #tela-inicial { background: #F15A24; align-items: center; justify-content: center; padding: 32px; }
+  .logo-med { font-size: 52px; font-weight: 900; color: #fff; letter-spacing: -2px; line-height: 1; }
+  .logo-med span { color: #FFD0C0; }
+  .logo-group { font-size: 11px; color: #FFD0C0; font-weight: 700; letter-spacing: 6px; margin-top: -4px; }
+  .ponto-label { color: #FFD0C0; font-size: 13px; margin-top: 4px; }
+  .card-hora { background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; text-align: center; margin: 28px 0; width: 100%; }
+  .hora-texto { font-size: 52px; font-weight: 900; color: #fff; line-height: 1; }
+  .data-texto { font-size: 13px; color: #FFD0C0; margin-top: 4px; text-transform: capitalize; }
+  .btn-principal { background: #fff; border-radius: 16px; padding: 28px; text-align: center; width: 100%; margin-bottom: 14px; cursor: pointer; border: none; }
+  .btn-principal-emoji { font-size: 36px; display: block; }
+  .btn-principal-texto { color: #F15A24; font-size: 20px; font-weight: 900; letter-spacing: 1px; margin-top: 8px; display: block; }
+  .btn-principal-sub { color: #aaa; font-size: 12px; margin-top: 4px; display: block; }
+  .btn-secundario { padding: 12px; cursor: pointer; border: none; background: none; }
+  .btn-secundario-texto { color: #FFD0C0; font-size: 13px; text-decoration: underline; }
+
+  /* ── TELA CADASTRO ── */
+  #tela-cadastro { background: #F15A24; align-items: center; justify-content: center; padding: 32px; }
+  .emoji-grande { font-size: 48px; margin-bottom: 16px; }
+  .titulo-branco { color: #fff; font-size: 22px; font-weight: 900; margin-bottom: 8px; }
+  .subtitulo { color: #FFD0C0; text-align: center; margin-bottom: 32px; font-size: 14px; line-height: 1.5; }
+  .input-cpf { width: 100%; background: #fff; border-radius: 12px; padding: 16px; font-size: 16px; margin-bottom: 14px; color: #222; border: none; outline: none; }
+  .btn-login { width: 100%; background: #fff; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; border: none; }
+  .btn-login-texto { color: #F15A24; font-weight: 800; font-size: 16px; }
+  .btn-voltar { margin-top: 20px; background: none; border: none; cursor: pointer; }
+  .btn-voltar-texto { color: #FFD0C0; font-size: 14px; }
+
+  /* ── TELA CÂMERA ── */
+  #tela-camera { background: #000; position: relative; }
+  #video { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; transform: scaleX(-1); }
+  .camera-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; }
+  .camera-header { display: flex; align-items: center; padding: 16px; gap: 16px; padding-top: max(16px, env(safe-area-inset-top)); background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); }
+  .camera-titulo { color: #fff; font-weight: 700; font-size: 16px; }
+  .btn-voltar-cam { color: #fff; font-size: 16px; background: none; border: none; cursor: pointer; }
+  .camera-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .oval { width: 220px; height: 280px; border-radius: 110px; border: 3px dashed #F15A24; }
+  .camera-instrucao { color: #fff; margin-top: 16px; font-size: 14px; opacity: 0.85; }
+  .camera-footer { display: flex; flex-direction: column; align-items: center; padding-bottom: max(40px, env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); padding-top: 20px; }
+  .btn-capturar { width: 80px; height: 80px; border-radius: 40px; background: #fff; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+  .btn-capturar-inner { width: 64px; height: 64px; border-radius: 32px; background: #F15A24; }
+  .camera-status { color: #fff; margin-top: 12px; font-size: 13px; }
+  .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #F15A24; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TELA SUCESSO ── */
+  #tela-sucesso { background: #f8f8f8; align-items: center; justify-content: center; padding: 32px; }
+  .card-sucesso { background: #fff; border-radius: 20px; padding: 32px; text-align: center; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+  .sucesso-titulo { font-size: 22px; font-weight: 900; color: #222; margin-top: 12px; }
+  .sucesso-nome { font-size: 20px; font-weight: 700; color: #F15A24; margin-top: 8px; }
+  .sucesso-cargo { font-size: 14px; color: #888; margin-top: 4px; }
+  .badge-tipo { background: #FFF0EB; border-radius: 20px; padding: 6px 16px; margin-top: 16px; display: inline-block; }
+  .badge-tipo-texto { color: #F15A24; font-weight: 700; font-size: 14px; }
+  .sucesso-hora { font-size: 42px; font-weight: 900; color: #222; margin-top: 12px; }
+  .sucesso-sub { color: #aaa; font-size: 12px; margin-top: 8px; }
+  .btn-concluir { width: 100%; background: #F15A24; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; border: none; margin-top: 24px; color: #fff; font-weight: 800; font-size: 16px; }
+
+  /* ── TELA ERRO ── */
+  .modal-erro { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 99; padding: 32px; }
+  .modal-erro.visivel { display: flex; }
+  .modal-card { background: #fff; border-radius: 16px; padding: 24px; width: 100%; text-align: center; }
+  .modal-titulo { font-size: 18px; font-weight: 800; margin-bottom: 8px; color: #222; }
+  .modal-msg { font-size: 14px; color: #666; margin-bottom: 20px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; font-size: 14px; }
+  .modal-btn-primary { background: #F15A24; color: #fff; }
+  .modal-btn-secondary { background: #f0f0f0; color: #444; }
+</style>
+</head>
+<body>
+
+<!-- TELA INICIAL -->
+<div id="tela-inicial" class="tela ativa">
+  <div style="text-align:center">
+    <div class="logo-med">med<span>+</span></div>
+    <div class="logo-group">GROUP</div>
+    <div class="ponto-label">Ponto Eletrônico</div>
+  </div>
+  <div class="card-hora">
+    <div class="hora-texto" id="relogio">--:--</div>
+    <div class="data-texto" id="data-hoje"></div>
+  </div>
+  <button class="btn-principal" onclick="irPara('registro')">
+    <span class="btn-principal-emoji">😊</span>
+    <span class="btn-principal-texto">REGISTRAR PONTO</span>
+    <span class="btn-principal-sub">Reconhecimento facial</span>
+  </button>
+  <button class="btn-secundario" onclick="irPara('cadastro')">
+    <span class="btn-secundario-texto">Primeiro acesso? Cadastrar rosto</span>
+  </button>
+</div>
+
+<!-- TELA CADASTRO -->
+<div id="tela-cadastro" class="tela">
+  <div id="cadastro-cpf" style="display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center">
+    <div class="emoji-grande">👤</div>
+    <div class="titulo-branco">Primeiro Acesso</div>
+    <div class="subtitulo">Digite seu CPF para cadastrar seu rosto no sistema.</div>
+    <input id="input-cpf" class="input-cpf" type="tel" placeholder="000.000.000-00" maxlength="14" oninput="formatarCpf(this)">
+    <button class="btn-login" onclick="confirmarCpf()">
+      <span class="btn-login-texto">Continuar →</span>
+    </button>
+    <button class="btn-voltar" onclick="irPara('inicial')">
+      <span class="btn-voltar-texto">← Voltar</span>
+    </button>
+  </div>
+</div>
+
+<!-- TELA CÂMERA (compartilhada para cadastro e registro) -->
+<div id="tela-camera" class="tela">
+  <video id="video" autoplay playsinline muted></video>
+  <div class="camera-overlay">
+    <div class="camera-header">
+      <button class="btn-voltar-cam" id="btn-voltar-cam">← Voltar</button>
+      <span class="camera-titulo" id="camera-titulo">Câmera</span>
+    </div>
+    <div class="camera-center">
+      <div class="oval"></div>
+      <div class="camera-instrucao" id="camera-instrucao">Centralize seu rosto no oval</div>
+    </div>
+    <div class="camera-footer">
+      <button class="btn-capturar" id="btn-capturar" onclick="capturarFoto()">
+        <div class="btn-capturar-inner" id="capturar-inner"></div>
+      </button>
+      <div class="camera-status" id="camera-status">Toque para fotografar</div>
+    </div>
+  </div>
+</div>
+
+<!-- TELA SUCESSO -->
+<div id="tela-sucesso" class="tela">
+  <div class="card-sucesso">
+    <div style="font-size:64px">✅</div>
+    <div class="sucesso-titulo">Ponto Registrado!</div>
+    <div class="sucesso-nome" id="sucesso-nome"></div>
+    <div class="sucesso-cargo" id="sucesso-cargo"></div>
+    <div class="badge-tipo"><span class="badge-tipo-texto" id="sucesso-tipo"></span></div>
+    <div class="sucesso-hora" id="sucesso-hora"></div>
+    <div class="sucesso-sub" id="sucesso-sub"></div>
+  </div>
+  <button class="btn-concluir" onclick="irPara('inicial')">Concluir</button>
+</div>
+
+<!-- MODAL ERRO -->
+<div class="modal-erro" id="modal-erro">
+  <div class="modal-card">
+    <div class="modal-titulo" id="modal-titulo">Erro</div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-secondary" id="modal-btn2" onclick="fecharModal()">Voltar</button>
+      <button class="modal-btn modal-btn-primary" id="modal-btn1" onclick="fecharModal()">Tentar novamente</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://ponto-eletronico-p6t6.onrender.com';
+let modoCamera = 'registro'; // 'registro' ou 'cadastro'
+let cpfCadastro = '';
+let stream = null;
+
+// ── NAVEGAÇÃO ──────────────────────────────────────────────
+function irPara(tela) {
+  document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+  if (tela === 'camera') {
+    document.getElementById('tela-camera').classList.add('ativa');
+    iniciarCamera();
+  } else {
+    pararCamera();
+    document.getElementById(`tela-${tela}`).classList.add('ativa');
+  }
+  if (tela === 'inicial') atualizarRelogio();
+}
+
+// ── RELÓGIO ────────────────────────────────────────────────
+function atualizarRelogio() {
+  const agora = new Date();
+  document.getElementById('relogio').textContent = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('data-hoje').textContent = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+}
+setInterval(atualizarRelogio, 1000);
+atualizarRelogio();
+
+// ── CPF ────────────────────────────────────────────────────
+function formatarCpf(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 11);
+  v = v.replace(/(\d{3})(\d)/, '$1.$2');
+  v = v.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+  v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+  input.value = v;
+}
+
+function confirmarCpf() {
+  const cpf = document.getElementById('input-cpf').value.replace(/\D/g, '');
+  if (cpf.length < 11) { mostrarErro('Atenção', 'Digite um CPF válido com 11 dígitos.', false); return; }
+  cpfCadastro = cpf;
+  modoCamera = 'cadastro';
+  document.getElementById('camera-titulo').textContent = 'Cadastrar Rosto';
+  document.getElementById('camera-instrucao').textContent = 'Centralize seu rosto e tire a foto';
+  document.getElementById('btn-voltar-cam').onclick = () => irPara('cadastro');
+  irPara('camera');
+}
+
+// ── CÂMERA ─────────────────────────────────────────────────
+async function iniciarCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+    document.getElementById('video').srcObject = stream;
+    setBotaoCapturar(false);
+  } catch(e) {
+    mostrarErro('Câmera bloqueada', 'Permita o acesso à câmera nas configurações do Safari: Ajustes > Safari > Câmera → Permitir.', false);
+    irPara('inicial');
+  }
+}
+
+function pararCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+function setBotaoCapturar(processando) {
+  const btn = document.getElementById('btn-capturar');
+  const inner = document.getElementById('capturar-inner');
+  const status = document.getElementById('camera-status');
+  btn.disabled = processando;
+  btn.style.opacity = processando ? '0.6' : '1';
+  if (processando) {
+    inner.innerHTML = '<div class="spinner"></div>';
+    inner.style.background = 'none';
+    inner.style.width = 'auto';
+    inner.style.height = 'auto';
+    status.textContent = modoCamera === 'cadastro' ? 'Cadastrando...' : 'Identificando...';
+  } else {
+    inner.innerHTML = '';
+    inner.style.background = '#F15A24';
+    inner.style.width = '64px';
+    inner.style.height = '64px';
+    status.textContent = 'Toque para fotografar';
+  }
+}
+
+async function capturarFoto() {
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  // Espelhar a imagem para ficar correta (já que o vídeo está espelhado no CSS)
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+  const base64 = dataUrl.split(',')[1];
+
+  setBotaoCapturar(true);
+  try {
+    if (modoCamera === 'cadastro') {
+      await cadastrarRosto(base64);
+    } else {
+      await registrarPonto(base64);
+    }
+  } catch(e) {
+    setBotaoCapturar(false);
+    mostrarErro('Erro de conexão', 'Verifique sua internet e tente novamente.', false);
+  }
+}
+
+// ── API CADASTRO ───────────────────────────────────────────
+async function cadastrarRosto(base64) {
+  const r = await fetch(`${API}/facial/cadastrar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cpf: cpfCadastro, foto_base64: base64 })
+  });
+  const d = await r.json();
+  setBotaoCapturar(false);
+  if (d.sucesso) {
+    mostrarErro('✅ Cadastro Realizado!', d.mensagem || 'Rosto cadastrado com sucesso!', false, () => irPara('inicial'));
+  } else {
+    mostrarErro('Erro no cadastro', d.erro || 'Não foi possível cadastrar.', true, () => irPara('inicial'));
+  }
+}
+
+// ── API REGISTRO ───────────────────────────────────────────
+async function registrarPonto(base64) {
+  const r = await fetch(`${API}/ponto/facial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ foto_base64: base64 })
+  });
+  const d = await r.json();
+  setBotaoCapturar(false);
+  if (d.sucesso) {
+    pararCamera();
+    document.getElementById('sucesso-nome').textContent = d.colaborador.nome;
+    document.getElementById('sucesso-cargo').textContent = d.colaborador.cargo;
+    document.getElementById('sucesso-tipo').textContent = d.tipo_registro;
+    document.getElementById('sucesso-hora').textContent = d.hora;
+    document.getElementById('sucesso-sub').textContent = `Registro ${d.total_registros_hoje} de hoje`;
+    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+    document.getElementById('tela-sucesso').classList.add('ativa');
+  } else {
+    mostrarErro('Não reconhecido', d.erro || 'Rosto não encontrado no sistema.', true, () => {}, () => irPara('inicial'));
+  }
+}
+
+// ── MODAL ERRO ─────────────────────────────────────────────
+function mostrarErro(titulo, msg, temTentarNovamente, onPrimario, onSecundario) {
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-msg').textContent = msg;
+  const btn1 = document.getElementById('modal-btn1');
+  const btn2 = document.getElementById('modal-btn2');
+  if (temTentarNovamente) {
+    btn1.style.display = 'block';
+    btn1.onclick = () => { fecharModal(); if (onPrimario) onPrimario(); };
+    btn2.textContent = 'Voltar';
+    btn2.onclick = () => { fecharModal(); if (onSecundario) onSecundario(); };
+  } else {
+    btn1.style.display = 'none';
+    btn2.textContent = 'OK';
+    btn2.onclick = () => { fecharModal(); if (onPrimario) onPrimario(); };
+  }
+  document.getElementById('modal-erro').classList.add('visivel');
+}
+
+function fecharModal() { document.getElementById('modal-erro').classList.remove('visivel'); }
+
+// ── TELA REGISTRO: configurar câmera ──────────────────────
+document.querySelector('#tela-inicial .btn-principal').addEventListener('click', () => {
+  modoCamera = 'registro';
+  document.getElementById('camera-titulo').textContent = 'Reconhecimento Facial';
+  document.getElementById('camera-instrucao').textContent = 'Centralize seu rosto no oval';
+  document.getElementById('btn-voltar-cam').onclick = () => irPara('inicial');
+  irPara('camera');
+});
+</script>
+</body>
+</html>
