@@ -293,7 +293,8 @@ async function cadastrarRosto(base64) {
   if (d.sucesso) {
     mostrarErro('✅ Cadastro Realizado!', d.mensagem || 'Rosto cadastrado com sucesso!', false, () => irPara('inicial'));
   } else {
-    mostrarErro('Erro no cadastro', d.erro || 'Não foi possível cadastrar.', true, () => irPara('inicial'));
+    const msgErro = d.erro || d.mensagem || `Erro ${r.status}: não foi possível cadastrar.`;
+    mostrarErro('Erro no cadastro', msgErro, true, null, () => irPara('inicial'));
   }
 }
 
@@ -307,6 +308,7 @@ async function registrarPonto(base64) {
   const d = await r.json();
   setBotaoCapturar(false);
   if (d.sucesso) {
+
     pararCamera();
     document.getElementById('sucesso-nome').textContent = d.colaborador.nome;
     document.getElementById('sucesso-cargo').textContent = d.colaborador.cargo;
@@ -316,7 +318,8 @@ async function registrarPonto(base64) {
     document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
     document.getElementById('tela-sucesso').classList.add('ativa');
   } else {
-    mostrarErro('Não reconhecido', d.erro || 'Rosto não encontrado no sistema.', true, () => {}, () => irPara('inicial'));
+    const msgErro = d.erro || d.mensagem || `Erro ${r.status}: rosto não reconhecido.`;
+    mostrarErro('Não reconhecido', msgErro, true, null, () => irPara('inicial'));
   }
 }
 
