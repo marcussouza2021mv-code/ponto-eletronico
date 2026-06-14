@@ -49,11 +49,9 @@ async function criarNovoFaceset() {
     headers: fd.getHeaders(), timeout: 15000
   });
   const token = resp.data.faceset_token;
-  await pool.query(
-    `INSERT INTO configuracoes (chave, valor) VALUES ('faceset_token', $1)
-     ON CONFLICT (chave) DO UPDATE SET valor = $1`,
-    [token]
-  );
+  // DELETE + INSERT evita depender de PRIMARY KEY / UNIQUE constraint
+  await pool.query(`DELETE FROM configuracoes WHERE chave = 'faceset_token'`);
+  await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('faceset_token', $1)`, [token]);
   console.log('✅ FaceSet criado:', token);
   return token;
 }
@@ -61,9 +59,8 @@ async function criarNovoFaceset() {
 async function getFacesetToken() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS configuracoes (
-      chave VARCHAR(100) PRIMARY KEY,
-      valor TEXT NOT NULL,
-      updated_at TIMESTAMP DEFAULT NOW()
+      chave VARCHAR(100),
+      valor TEXT NOT NULL
     )
   `);
   const r = await pool.query(`SELECT valor FROM configuracoes WHERE chave = 'faceset_token'`);
