@@ -40,27 +40,14 @@ const PORT = process.env.PORT || 3000;
 const FACEPP_BASE = 'https://api-us.faceplusplus.com';
 
 // ── FACESET TOKEN (armazenado no banco) ───────────────────────
-async function getFacesetToken() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS configuracoes (
-      chave VARCHAR(100) PRIMARY KEY,
-      valor TEXT NOT NULL,
-      updated_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-
-  const r = await pool.query(`SELECT valor FROM configuracoes WHERE chave = 'faceset_token'`);
-  if (r.rows.length > 0) return r.rows[0].valor;
-
+async function criarNovoFaceset() {
   const fd = new FormData();
   fd.append('api_key', FACEPP_KEY);
   fd.append('api_secret', FACEPP_SECRET_KEY);
   fd.append('display_name', 'medplus_colaboradores');
-
   const resp = await axios.post(`${FACEPP_BASE}/facepp/v3/faceset/create`, fd, {
     headers: fd.getHeaders(), timeout: 15000
   });
-
   const token = resp.data.faceset_token;
   await pool.query(
     `INSERT INTO configuracoes (chave, valor) VALUES ('faceset_token', $1)
@@ -69,6 +56,19 @@ async function getFacesetToken() {
   );
   console.log('✅ FaceSet criado:', token);
   return token;
+}
+
+async function getFacesetToken() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS configuracoes (
+      chave VARCHAR(100) PRIMARY KEY,
+      valor TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  const r = await pool.query(`SELECT valor FROM configuracoes WHERE chave = 'faceset_token'`);
+  if (r.rows.length === 0) return await criarNovoFaceset();
+  return r.rows[0].valor;
 }
 
 // ── MIDDLEWARE DE AUTENTICAÇÃO ────────────────────────────────
@@ -155,17 +155,25 @@ async function buscarNoFaceset(faceToken) {
 // ── FACE++: ADICIONAR AO FACESET ──────────────────────────────
 async function adicionarAoFaceset(faceToken) {
   try {
-    const facesetToken = await getFacesetToken();
-    const form = new FormData();
-    form.append('api_key', FACEPP_KEY);
-    form.append('api_secret', FACEPP_SECRET_KEY);
-    form.append('faceset_token', facesetToken);
-    form.append('face_tokens', faceToken);
+    let facesetToken = await getFacesetToken();
+    const tentarAddFace = async (token) => {
+      const form = new FormData();
+      form.append('api_key', FACEPP_KEY);
+      form.append('api_secret', FACEPP_SECRET_KEY);
+      form.append('faceset_token', token);
+      form.append('face_tokens', faceToken);
+      return axios.post(`${FACEPP_BASE}/facepp/v3/faceset/addface`, form, { headers: form.getHeaders(), timeout: 15000 });
+    };
 
-    await axios.post(
-      `${FACEPP_BASE}/facepp/v3/faceset/addface`,
-      form, { headers: form.getHeaders(), timeout: 15000 }
-    );
+    try {
+      await tentarAddFace(facesetToken);
+    } catch (e) {
+      // FaceSet inválido (mudança de endpoint) — recriar e tentar novamente
+      console.log('FaceSet inválido, recriando...', e.response?.data);
+      await pool.query(`DELETE FROM configuracoes WHERE chave = 'faceset_token'`);
+      facesetToken = await criarNovoFaceset();
+      await tentarAddFace(facesetToken);
+    }
     return true;
   } catch (e) {
     console.error('Face++ addface erro:', e.response?.status, e.response?.data, e.message);
