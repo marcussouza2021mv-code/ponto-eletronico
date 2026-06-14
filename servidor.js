@@ -186,6 +186,31 @@ app.get('/painel', (req, res) => {
   res.sendFile(path.join(__dirname, 'painel-rh.html'));
 });
 
+// ROTA TEMPORÁRIA — reset admin (remover depois)
+app.get('/setup/reset-admin', async (req, res) => {
+  try {
+    const novaSenha = 'MedPlus@2025';
+    const hash = await bcrypt.hash(novaSenha, 10);
+    // Tenta atualizar admin existente
+    const up = await pool.query(
+      `UPDATE colaboradores SET senha_hash=$1 WHERE perfil='ADMIN' RETURNING matricula, nome`,
+      [hash]
+    );
+    if (up.rows.length > 0) {
+      return res.json({ ok: true, mensagem: 'Senha do admin resetada!', matricula: up.rows[0].matricula, nome: up.rows[0].nome, nova_senha: novaSenha });
+    }
+    // Se não existe, cria
+    const ins = await pool.query(
+      `INSERT INTO colaboradores (empresa_id, matricula, nome, cpf, cargo, data_admissao, perfil, senha_hash, ativo)
+       VALUES (1,'0001','Administrador','00000000000','Administrador','2024-01-01','ADMIN',$1,true) RETURNING matricula, nome`,
+      [hash]
+    );
+    res.json({ ok: true, mensagem: 'Admin criado!', matricula: ins.rows[0].matricula, nome: ins.rows[0].nome, nova_senha: novaSenha });
+  } catch(e) {
+    res.status(500).json({ erro: e.message });
+  }
+});
+
 app.get('/api', (req, res) => {
   res.json({
     sistema: 'Ponto Eletrônico API',
