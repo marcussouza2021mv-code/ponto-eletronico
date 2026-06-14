@@ -37,7 +37,7 @@ const FACEPP_SECRET_KEY = process.env.FACEPP_API_SECRET || '';
 const PORT = process.env.PORT || 3000;
 
 // ENDPOINT CN — Render free tier está bloqueado no endpoint US desde Jan/2026
-const FACEPP_BASE = 'https://api-cn1.faceplusplus.com';
+const FACEPP_BASE = 'https://api-us.faceplusplus.com';
 
 // ── FACESET TOKEN (armazenado no banco) ───────────────────────
 async function getFacesetToken() {
