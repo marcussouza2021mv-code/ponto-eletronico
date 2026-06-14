@@ -181,6 +181,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'ponto.html'));
 });
 
+app.get('/painel', (req, res) => {
+  const path = require('path');
+  res.sendFile(path.join(__dirname, 'painel-rh.html'));
+});
+
 app.get('/api', (req, res) => {
   res.json({
     sistema: 'Ponto Eletrônico API',
