@@ -168,16 +168,16 @@ async function adicionarAoFaceset(faceToken) {
     try {
       await tentarAddFace(facesetToken);
     } catch (e) {
-      // FaceSet inválido (mudança de endpoint) — recriar e tentar novamente
       console.log('FaceSet inválido, recriando...', e.response?.data);
       await pool.query(`DELETE FROM configuracoes WHERE chave = 'faceset_token'`);
       facesetToken = await criarNovoFaceset();
       await tentarAddFace(facesetToken);
     }
-    return true;
+    return { ok: true };
   } catch (e) {
-    console.error('Face++ addface erro:', e.response?.status, e.response?.data, e.message);
-    return false;
+    const detalhe = e.response?.data?.error_message || e.response?.data || e.message;
+    console.error('Face++ addface erro:', e.response?.status, detalhe);
+    return { ok: false, erro: String(detalhe) };
   }
 }
 
@@ -293,7 +293,7 @@ app.post('/facial/cadastrar', async (req, res) => {
     if (!deteccao.sucesso) return res.status(400).json({ sucesso: false, mensagem: deteccao.erro });
 
     const adicionado = await adicionarAoFaceset(deteccao.faceToken);
-    if (!adicionado) return res.status(500).json({ sucesso: false, mensagem: 'Erro ao salvar rosto no sistema.' });
+    if (!adicionado.ok) return res.status(500).json({ sucesso: false, mensagem: 'Erro ao salvar rosto: ' + adicionado.erro });
 
     await pool.query('UPDATE colaboradores SET face_token = $1 WHERE id = $2', [deteccao.faceToken, colaborador.id]);
 
