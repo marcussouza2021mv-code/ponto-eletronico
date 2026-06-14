@@ -224,8 +224,9 @@ app.post('/auth/login', async (req, res) => {
 
 // Cadastrar rosto (primeiro acesso — sem login)
 app.post('/facial/cadastrar', async (req, res) => {
-  const { cpf, imagemBase64 } = req.body;
-  if (!cpf || !imagemBase64) return res.status(400).json({ erro: 'CPF e imagem são obrigatórios' });
+  const { cpf, imagemBase64, foto_base64 } = req.body;
+  const imagem = imagemBase64 || foto_base64;
+  if (!cpf || !imagem) return res.status(400).json({ erro: 'CPF e imagem são obrigatórios' });
 
   try {
     const { rows } = await pool.query(
@@ -239,7 +240,7 @@ app.post('/facial/cadastrar', async (req, res) => {
       return res.json({ sucesso: false, mensagem: 'Rosto já cadastrado. Use o reconhecimento facial para registrar ponto.' });
     }
 
-    const deteccao = await detectarRosto(imagemBase64);
+    const deteccao = await detectarRosto(imagem);
     if (!deteccao.sucesso) return res.status(400).json({ sucesso: false, mensagem: deteccao.erro });
 
     const adicionado = await adicionarAoFaceset(deteccao.faceToken);
@@ -260,12 +261,13 @@ app.post('/facial/cadastrar', async (req, res) => {
 
 // Registrar ponto via reconhecimento facial (sem matrícula/senha)
 app.post('/ponto/facial', async (req, res) => {
-  const { imagemBase64, latitude, longitude, dispositivo } = req.body;
-  if (!imagemBase64) return res.status(400).json({ erro: 'Imagem é obrigatória' });
+  const { imagemBase64, foto_base64, latitude, longitude, dispositivo } = req.body;
+  const imagem = imagemBase64 || foto_base64;
+  if (!imagem) return res.status(400).json({ erro: 'Imagem é obrigatória' });
 
   try {
     // 1. Detectar rosto na imagem
-    const deteccao = await detectarRosto(imagemBase64);
+    const deteccao = await detectarRosto(imagem);
     if (!deteccao.sucesso) return res.status(400).json({ sucesso: false, mensagem: deteccao.erro });
 
     // 2. Buscar no FaceSet quem é essa pessoa
