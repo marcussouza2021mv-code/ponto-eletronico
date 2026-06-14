@@ -2,6 +2,11 @@
 // SISTEMA DE PONTO ELETRÔNICO — BACKEND COMPLETO
 // Node.js + Express + PostgreSQL (Supabase) + Face++ (grátis)
 // ================================================================
+
+// Forçar IPv4 (necessário no Render free tier)
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
@@ -156,12 +161,23 @@ app.get('/ponto/hoje/:matricula', async (req, res) => {
   }
 });
 
+app.get('/ponto/mes/:matricula', autenticar(), async (req, res) => {
+  const { mes, ano } = req.query;
+  try {
+    const { rows } = await pool.query(`SELECT rp.* FROM registros_ponto rp JOIN colaboradores c ON rp.colaborador_id = c.id WHERE c.matricula = $1 AND EXTRACT(MONTH FROM rp.data_hora AT TIME ZONE 'America/Sao_Paulo') = $2 AND EXTRACT(YEAR FROM rp.data_hora AT TIME ZONE 'America/Sao_Paulo') = $3 ORDER BY rp.data_hora ASC`,
+      [req.params.matricula, mes || new Date().getMonth() + 1, ano || new Date().getFullYear()]);
+    res.json({ registros: rows });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao buscar registros do mês' });
+  }
+});
+
 app.get('/colaboradores', autenticar(['RH', 'ADMIN', 'GESTOR']), async (req, res) => {
   const { busca, ativo = 'true' } = req.query;
   try {
-    let query = `SELECT c.id, c.matricula, c.nome, c.cpf, c.cargo, c.email, c.data_admissao, c.salario, c.perfil, c.ativo, d.nome AS departamento FROM colaboradores c LEFT JOIN departamentos d ON c.departamento_id = d.id WHERE c.empresa_id = $1 AND c.ativo = $2`;
+    let query = `SELECT c.id, c.matricula, c.nome, c.cpf, c.cargo, c.email, c.telefone, c.data_admissao, c.salario, c.perfil, c.ativo, c.foto_url, c.face_token, d.nome AS departamento, j.descricao AS jornada FROM colaboradores c LEFT JOIN departamentos d ON c.departamento_id = d.id LEFT JOIN jornadas j ON c.jornada_id = j.id WHERE c.empresa_id = $1 AND c.ativo = $2`;
     const params = [req.usuario.empresa_id, ativo === 'true'];
-    if (busca) { query += ` AND (c.nome ILIKE $3 OR c.matricula ILIKE $3)`; params.push(`%${busca}%`); }
+    if (busca) { query += ` AND (c.nome ILIKE $3 OR c.matricula ILIKE $3 OR c.cpf ILIKE $3)`; params.push(`%${busca}%`); }
     query += ' ORDER BY c.nome ASC';
     const { rows } = await pool.query(query, params);
     res.json({ colaboradores: rows, total: rows.length });
@@ -186,7 +202,7 @@ app.post('/colaboradores', autenticar(['RH', 'ADMIN']), async (req, res) => {
 
 app.get('/colaboradores/:matricula', async (req, res) => {
   try {
-    const { rows } = await pool.query(`SELECT c.id, c.matricula, c.nome, c.cargo, d.nome AS departamento FROM colaboradores c LEFT JOIN departamentos d ON c.departamento_id = d.id WHERE c.matricula = $1 AND c.ativo = true`, [req.params.matricula]);
+    const { rows } = await pool.query(`SELECT c.id, c.matricula, c.nome, c.cargo, c.foto_url, d.nome AS departamento, j.descricao AS jornada, j.hora_entrada, j.hora_saida FROM colaboradores c LEFT JOIN departamentos d ON c.departamento_id = d.id LEFT JOIN jornadas j ON c.jornada_id = j.id WHERE c.matricula = $1 AND c.ativo = true`, [req.params.matricula]);
     if (rows.length === 0) return res.status(404).json({ erro: 'Colaborador não encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -199,9 +215,11 @@ app.get('/rh/dashboard', autenticar(['RH', 'ADMIN', 'GESTOR']), async (req, res)
     const { rows: situacao } = await pool.query(`SELECT situacao_atual, COUNT(*) AS total FROM vw_ponto_hoje GROUP BY situacao_atual`);
     const { rows: presentes } = await pool.query(`SELECT * FROM vw_ponto_hoje WHERE situacao_atual != 'AUSENTE' ORDER BY nome`);
     const { rows: ausentes } = await pool.query(`SELECT * FROM vw_ponto_hoje WHERE situacao_atual = 'AUSENTE' ORDER BY nome`);
+    const { rows: advertenciasPendentes } = await pool.query(`SELECT a.*, c.nome AS colaborador_nome FROM advertencias a JOIN colaboradores c ON a.colaborador_id = c.id WHERE a.status IN ('PENDENTE_RH', 'APROVADA') ORDER BY a.created_at DESC LIMIT 10`);
+    const { rows: rescisoesPendentes } = await pool.query(`SELECT r.*, c.nome AS colaborador_nome FROM rescisoes r JOIN colaboradores c ON r.colaborador_id = c.id WHERE r.status NOT IN ('APROVADO','CANCELADO') ORDER BY r.created_at DESC LIMIT 10`);
     res.json({
       resumo: { trabalhando: situacao.find(s => s.situacao_atual === 'TRABALHANDO')?.total || 0, almoco: situacao.find(s => s.situacao_atual === 'ALMOCO')?.total || 0, saiu: situacao.find(s => s.situacao_atual === 'SAIU')?.total || 0, ausentes: situacao.find(s => s.situacao_atual === 'AUSENTE')?.total || 0 },
-      presentes, ausentes
+      presentes, ausentes, advertenciasPendentes, rescisoesPendentes
     });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao carregar dashboard' });
@@ -210,7 +228,7 @@ app.get('/rh/dashboard', autenticar(['RH', 'ADMIN', 'GESTOR']), async (req, res)
 
 app.post('/advertencias', autenticar(['RH', 'ADMIN', 'GESTOR']), async (req, res) => {
   const { colaborador_id, tipo, motivo, descricao_detalhada, data_ocorrencia, dias_suspensao } = req.body;
-  if (!colaborador_id || !tipo || !motivo || !data_ocorrencia) return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
+  if (!colaborador_id || !tipo || !motivo || !data_ocorrencia) return res.status(400).json({ erro: 'Campos obrigatórios: colaborador_id, tipo, motivo, data_ocorrencia' });
   try {
     const { rows } = await pool.query(`INSERT INTO advertencias (colaborador_id, gestor_id, tipo, motivo, descricao_detalhada, data_ocorrencia, dias_suspensao, status) VALUES ($1,$2,$3,$4,$5,$6,$7,'PENDENTE_RH') RETURNING *`,
       [colaborador_id, req.usuario.id, tipo, motivo, descricao_detalhada, data_ocorrencia, dias_suspensao || 0]);
@@ -236,15 +254,24 @@ app.put('/advertencias/:id/assinar', async (req, res) => {
     const assinaturaHash = aceita ? gerarHash(`${req.params.id}|${matricula}|${new Date().toISOString()}`) : null;
     await pool.query(`UPDATE advertencias SET status = $1, data_assinatura = NOW(), assinatura_hash = $2, recusa_justificativa = $3, updated_at = NOW() WHERE id = $4`,
       [novoStatus, assinaturaHash, justificativa_recusa || null, req.params.id]);
-    res.json({ sucesso: true, mensagem: aceita ? 'Advertência assinada.' : 'Recusa registrada.' });
+    res.json({ sucesso: true, mensagem: aceita ? 'Advertência assinada.' : 'Recusa registrada com justificativa.' });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao processar assinatura' });
   }
 });
 
+app.get('/advertencias/colaborador/:id', autenticar(), async (req, res) => {
+  try {
+    const { rows } = await pool.query(`SELECT a.*, g.nome AS gestor_nome FROM advertencias a JOIN colaboradores g ON a.gestor_id = g.id WHERE a.colaborador_id = $1 ORDER BY a.created_at DESC`, [req.params.id]);
+    res.json({ advertencias: rows });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao buscar advertências' });
+  }
+});
+
 app.post('/rescisao/calcular', autenticar(['RH', 'ADMIN', 'GESTOR']), async (req, res) => {
   const { colaborador_id, tipo, data_desligamento } = req.body;
-  if (!colaborador_id || !tipo || !data_desligamento) return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
+  if (!colaborador_id || !tipo || !data_desligamento) return res.status(400).json({ erro: 'colaborador_id, tipo e data_desligamento são obrigatórios' });
   try {
     const { rows } = await pool.query('SELECT * FROM colaboradores WHERE id = $1', [colaborador_id]);
     if (rows.length === 0) return res.status(404).json({ erro: 'Colaborador não encontrado' });
@@ -313,7 +340,7 @@ app.post('/rescisao/iniciar', autenticar(['RH', 'ADMIN', 'GESTOR']), async (req,
 app.put('/rescisao/:id/aprovar', autenticar(['RH', 'ADMIN']), async (req, res) => {
   try {
     await pool.query(`UPDATE rescisoes SET status = 'APROVADO', aprovado_rh = $1, updated_at = NOW() WHERE id = $2`, [req.usuario.id, req.params.id]);
-    res.json({ sucesso: true, mensagem: 'Rescisão aprovada.' });
+    res.json({ sucesso: true, mensagem: 'Rescisão aprovada. TRCT pode ser gerado.' });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao aprovar rescisão' });
   }
@@ -325,6 +352,7 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`📌 Acesse: http://localhost:${PORT}`);
 });
 
 module.exports = app;
